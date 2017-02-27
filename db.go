@@ -32,23 +32,26 @@ type Dependency struct {
 
 // Build builds a dependency graph.
 func (dg *DependencyGraph) Build() error {
+	// Build a dependency graph out of our dependencies.
 	start, err := buildGraph(dg.deps, dg.static)
 	if err != nil {
 		return err
 	}
 
+	// Find a topological ordering to the graph, if one exists.
 	order, err := traverse(dg.deps, start)
 	if err != nil {
 		return err
 	}
 
+	// Build dependencies in topological order.
 	return build(order, dg.deps, dg.static)
 }
 
 // constructs a dependency graph of the dependency map.
 func buildGraph(
-	deps map[reflect.Type]*Dependency, /* deps to be build */
-	staticDeps map[reflect.Type]reflect.Value, /* deps already satsified */
+	deps map[reflect.Type]*Dependency,
+	staticDeps map[reflect.Type]reflect.Value,
 ) ([]*Dependency, error) {
 	startNodes := []*Dependency{}
 	for _, dep := range deps {
@@ -68,9 +71,9 @@ func buildGraph(
 			if !depExists {
 				return nil, ErrIncompleteDependencyGraph
 			}
-			/* makes the prereq node point at this */
+			// makes the prereq node point at this
 			m.neededBy = append(m.neededBy, dep)
-			/* increments how many non static deps this node has.*/
+			// increments how many non static deps this node has.
 			dep.needs++
 		}
 		if dep.needs == 0 { //not including static-deps.
@@ -138,12 +141,14 @@ func build(
 			d, ok := deps[aType]
 			if ok {
 				args[i] = d.Interface
+			} else {
+				panic("Missing interface")
 			}
 		}
 
 		rets := cVal.Call(args)
 		if len(rets) != 1 {
-			// TODO: Figure out a way to handle this.
+			// TODO: Figure out a way to handle this (namely error returns).
 			return ErrUnexpectedConstructorContext
 		}
 		dep.Interface = rets[0]
