@@ -8,19 +8,16 @@ import (
 var (
 	// ErrIncompleteDependencyGraph is returned when a dependency graph
 	// is missing dependencies required to build dependencies.
-	ErrIncompleteDependencyGraph =
-	    errors.New("Dependency graph is missing a prerequisite dependency")
+	ErrIncompleteDependencyGraph = errors.New("Dependency graph is missing a prerequisite dependency")
 
 	// ErrNotDAG is returned when trying to build a dependency graph
 	// that contains a cycle (i.e. has circular dependencies).
-	ErrNotDAG =
-	    errors.New("Circular dependecies")
+	ErrNotDAG = errors.New("Circular dependecies")
 
 	// ErrUnexpectedConstructorContext is returned when a constructor
 	// function returns more than the expected values.
 	// TODO: find a way to compensate for different return numbers.
-	ErrUnexpectedConstructorContext =
-	    errors.New("Constructor returned an unexpected number of values")
+	ErrUnexpectedConstructorContext = errors.New("Constructor returned an unexpected number of values")
 )
 
 // Dependency contains a needed interface its corresponding constructor.
@@ -60,13 +57,13 @@ func buildGraph(
 		for i := 0; i < cParams; i++ {
 			aType := cType.In(i) // type of argument
 
-			/* These deps do not need to be constructed */
+			// These deps do not need to be constructed
 			_, isStaticDep := staticDeps[aType]
 			if isStaticDep {
 				continue
 			}
 
-			/* These do */
+			// These do
 			m, depExists := deps[aType]
 			if !depExists {
 				return nil, ErrIncompleteDependencyGraph

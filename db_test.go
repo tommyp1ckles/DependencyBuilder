@@ -11,6 +11,7 @@ import (
 var (
 	logger = log.New(os.Stderr, "LOG: ", 0)
 )
+
 func TestDependencyBuilder(t *testing.T) {
 	Convey("Testing Dependency Builder", t, func() {
 		// 'Good' graphs
@@ -148,12 +149,61 @@ func TestDependencyBuilder(t *testing.T) {
 			}
 
 			Convey("Should fail due to cycle", func() {
-			    dg := New()
-			    dg.AddDep(reflect.TypeOf(dep1{}), cdep1)
-			    dg.AddDep(reflect.TypeOf(dep0{}), cdep0)
-			    dg.AddDep(reflect.TypeOf(dep3{}), cdep3)
-			    dg.AddDep(reflect.TypeOf(dep2{}), cdep2)
-			    So(dg.Build(), ShouldEqual, ErrNotDAG)
+				dg := New()
+				dg.AddDep(reflect.TypeOf(dep1{}), cdep1)
+				dg.AddDep(reflect.TypeOf(dep0{}), cdep0)
+				dg.AddDep(reflect.TypeOf(dep3{}), cdep3)
+				dg.AddDep(reflect.TypeOf(dep2{}), cdep2)
+				So(dg.Build(), ShouldEqual, ErrNotDAG)
+			})
+		})
+		Convey("Graph 3 (with indirect types)", func() {
+			//*0 --> 1
+			// |
+			// V
+			//*2 --> 3
+			// |
+			// V
+			// 4 --> 5
+			type dep0 struct{}
+			cdep0 := func() *dep0 {
+				return &dep0{}
+			}
+
+			type dep1 struct{}
+			cdep1 := func(r0 *dep0) dep1 {
+				return dep1{}
+			}
+
+			type dep2 struct{}
+			cdep2 := func(r0 *dep0) *dep2 {
+				return &dep2{}
+			}
+
+			type dep3 struct{}
+			cdep3 := func(r0 *dep2) dep3 {
+				return dep3{}
+			}
+
+			type dep4 struct{}
+			cdep4 := func(r0 *dep2) dep4 {
+				return dep4{}
+			}
+
+			type dep5 struct{}
+			cdep5 := func(r0 dep4) dep5 {
+				return dep5{}
+			}
+
+			Convey("Should succeed", func() {
+				dg := New()
+				dg.AddDep(reflect.TypeOf(&dep0{}), cdep0)
+				dg.AddDep(reflect.TypeOf(dep1{}), cdep1)
+				dg.AddDep(reflect.TypeOf(&dep2{}), cdep2)
+				dg.AddDep(reflect.TypeOf(dep3{}), cdep3)
+				dg.AddDep(reflect.TypeOf(dep4{}), cdep4)
+				dg.AddDep(reflect.TypeOf(dep5{}), cdep5)
+				So(dg.Build(), ShouldBeNil)
 			})
 		})
 	})
