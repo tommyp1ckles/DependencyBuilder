@@ -8,19 +8,16 @@ import (
 var (
 	// ErrIncompleteDependencyGraph is returned when a dependency graph
 	// is missing dependencies required to build dependencies.
-	ErrIncompleteDependencyGraph =
-	    errors.New("Dependency graph is missing a prerequisite dependency")
+	ErrIncompleteDependencyGraph = errors.New("Dependency graph is missing a prerequisite dependency")
 
 	// ErrNotDAG is returned when trying to build a dependency graph
 	// that contains a cycle (i.e. has circular dependencies).
-	ErrNotDAG =
-	    errors.New("Circular dependecies")
+	ErrNotDAG = errors.New("Circular dependecies")
 
 	// ErrUnexpectedConstructorContext is returned when a constructor
 	// function returns more than the expected values.
 	// TODO: find a way to compensate for different return numbers.
-	ErrUnexpectedConstructorContext =
-	    errors.New("Constructor returned an unexpected number of values")
+	ErrUnexpectedConstructorContext = errors.New("Constructor returned an unexpected number of values")
 )
 
 // Dependency contains a needed interface its corresponding constructor.
@@ -35,23 +32,26 @@ type Dependency struct {
 
 // Build builds a dependency graph.
 func (dg *DependencyGraph) Build() error {
+	// Build a dependency graph out of our dependencies.
 	start, err := buildGraph(dg.deps, dg.static)
 	if err != nil {
 		return err
 	}
 
+	// Find a topological ordering to the graph, if one exists.
 	order, err := traverse(dg.deps, start)
 	if err != nil {
 		return err
 	}
 
+	// Build dependencies in topological order.
 	return build(order, dg.deps, dg.static)
 }
 
 // constructs a dependency graph of the dependency map.
 func buildGraph(
-	deps map[reflect.Type]*Dependency, /* deps to be build */
-	staticDeps map[reflect.Type]reflect.Value, /* deps already satsified */
+	deps map[reflect.Type]*Dependency,
+	staticDeps map[reflect.Type]reflect.Value,
 ) ([]*Dependency, error) {
 	startNodes := []*Dependency{}
 	for _, dep := range deps {
@@ -60,20 +60,20 @@ func buildGraph(
 		for i := 0; i < cParams; i++ {
 			aType := cType.In(i) // type of argument
 
-			/* These deps do not need to be constructed */
+			// These deps do not need to be constructed
 			_, isStaticDep := staticDeps[aType]
 			if isStaticDep {
 				continue
 			}
 
-			/* These do */
+			// These do
 			m, depExists := deps[aType]
 			if !depExists {
 				return nil, ErrIncompleteDependencyGraph
 			}
-			/* makes the prereq node point at this */
+			// makes the prereq node point at this
 			m.neededBy = append(m.neededBy, dep)
-			/* increments how many non static deps this node has.*/
+			// increments how many non static deps this node has.
 			dep.needs++
 		}
 		if dep.needs == 0 { //not including static-deps.
@@ -141,12 +141,14 @@ func build(
 			d, ok := deps[aType]
 			if ok {
 				args[i] = d.Interface
+			} else {
+				panic("Missing interface")
 			}
 		}
 
 		rets := cVal.Call(args)
 		if len(rets) != 1 {
-			// TODO: Figure out a way to handle this.
+			// TODO: Figure out a way to handle this (namely error returns).
 			return ErrUnexpectedConstructorContext
 		}
 		dep.Interface = rets[0]
